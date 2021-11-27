@@ -1,32 +1,31 @@
 import pygame as pg
-import numba
-from numba import njit, cuda
+from numba import njit, prange
 import numpy as np
 import math
 
-height_map_img = pg.image.load('res/map/test_height5.jpg')
+height_map_img = pg.image.load('res/map/test_height5_big.jpg')
 height_map = pg.surfarray.array3d(height_map_img)
 
-color_map_img = pg.image.load('res/map/test_color5.jpg')
+color_map_img = pg.image.load('res/map/test_color5_big.jpg')
 color_map = pg.surfarray.array3d(color_map_img)
 
 map_height = len(height_map[0])
 map_width = len(height_map)
 
 
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=True)
 def ray_casting(screen_array, player_pos, player_angle, player_height, player_pitch,
                 screen_width, screen_height, delta_angle, ray_distance, h_fov, scale_height):
     screen_array[:] = np.array([0, 0, 0])
     y_buffer = np.full(screen_width, screen_height)
 
     ray_angle = player_angle - h_fov
-    for num_ray in range(screen_width):
+    for num_ray in prange(screen_width):
         first_contact = False  # Первый контакт луча с картой
         sin_a = math.sin(ray_angle)
         cos_a = math.cos(ray_angle)
 
-        for depth in range(1, ray_distance):
+        for depth in prange(1, ray_distance):
             x = int(player_pos[0] + depth * cos_a)
             if 0 < x < map_width:
                 y = int(player_pos[1] + depth * sin_a)
