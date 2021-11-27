@@ -1,5 +1,6 @@
 import pygame as pg
-from numba import njit
+import numba
+from numba import njit, cuda
 import numpy as np
 import math
 
@@ -13,7 +14,7 @@ map_height = len(height_map[0])
 map_width = len(height_map)
 
 
-@njit(fastmath=True)
+@njit(fastmath=True, parallel=True)
 def ray_casting(screen_array, player_pos, player_angle, player_height, player_pitch,
                 screen_width, screen_height, delta_angle, ray_distance, h_fov, scale_height):
     screen_array[:] = np.array([0, 0, 0])
@@ -21,7 +22,7 @@ def ray_casting(screen_array, player_pos, player_angle, player_height, player_pi
 
     ray_angle = player_angle - h_fov
     for num_ray in range(screen_width):
-        first_contact = False
+        first_contact = False  # Первый контакт луча с картой
         sin_a = math.sin(ray_angle)
         cos_a = math.cos(ray_angle)
 
@@ -30,13 +31,13 @@ def ray_casting(screen_array, player_pos, player_angle, player_height, player_pi
             if 0 < x < map_width:
                 y = int(player_pos[1] + depth * sin_a)
                 if 0 < y < map_height:
-                    depth *= math.cos(player_angle - ray_angle)
+                    depth *= math.cos(player_angle - ray_angle)  # Убираем рыбий глаз
                     height_on_screen = int((player_height - height_map[x, y][0]) /
                                            depth * scale_height + player_pitch)
-                    if not first_contact:
+                    if not first_contact:  # буферизация минимального значения
                         y_buffer[num_ray] = min(height_on_screen, screen_height)
                         first_contact = True
-                    if height_on_screen < 0:
+                    if height_on_screen < 0:  # исправляем зеркальный баг
                         height_on_screen = 0
                     if height_on_screen < y_buffer[num_ray]:
                         for screen_y in range(height_on_screen, y_buffer[num_ray]):

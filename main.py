@@ -21,7 +21,7 @@ class SkyWars:
 
     def run(self):
         while True:
-            self.clock.tick(60)
+            self.clock.tick(144)
             pygame.display.set_caption(f'FPS: {self.clock.get_fps()}')
             
             # отрисовка
